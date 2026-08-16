@@ -1,20 +1,42 @@
-// https://gitlab.gnome.org/GNOME/gtk/-/blob/gtk-3-24/gtk/theme/Adwaita/_colors-public.scss
-$fg-color: #{"@theme_fg_color"};
-$bg-color: #{"@theme_bg_color"};
+// Catppuccin Mocha — mesmos valores do ~/.config/waybar/mocha.css,
+// para o popup ficar coerente com a barra.
+$base: #1e1e2e;
+$mantle: #181825;
+$crust: #11111b;
 
-window.Bar {
+$text: #cdd6f4;
+$subtext0: #a6adc8;
+$subtext1: #bac2de;
+
+$surface0: #313244;
+$surface1: #45475a;
+$surface2: #585b70;
+
+$overlay0: #6c7086;
+$overlay1: #7f849c;
+
+$blue: #89b4fa;
+$lavender: #b4befe;
+$mauve: #cba6f7;
+$peach: #fab387;
+$red: #f38ba8;
+
+// A janela é o overlay que cobre a tela inteira: precisa ser invisível e
+// deixar o clique no vazio chegar ao gesture que fecha o popup.
+window.Hyprcal {
   background: transparent;
-  color: $fg-color;
-  font-weight: bold;
 
-  > centerbox {
-    background: $bg-color;
-    border-radius: 10px;
-    margin: 8px;
+  .card {
+    background: $base;
+    color: $text;
+    border: 1px solid $surface0;
+    border-radius: 12px;
+    padding: 12px;
   }
 
-  button {
-    border-radius: 8px;
-    margin: 2px;
+  .placeholder {
+    color: $mauve;
+    font-weight: bold;
+    padding: 24px;
   }
 }
