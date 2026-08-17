@@ -1,2 +1,6 @@
 node_modules/
 @girs/
+
+# Binário do daemon, gerado por `go build` dentro de daemon/.
+daemon/hyprcald
+daemon/daemon
