@@ -32,8 +32,8 @@ Toda mensagem é um objeto JSON. Os campos comuns:
 | campo  | tipo   | quando                                                       |
 | ------ | ------ | ------------------------------------------------------------ |
 | `id`   | número | Pedidos da UI e suas respostas. Ausente em avisos do daemon. |
-| `tipo` | string | Sempre nos pedidos e avisos. Ausente nas respostas.          |
-| `erro` | objeto | Só em respostas que falharam.                                |
+| `kind` | string | Sempre nos pedidos e avisos. Ausente nas respostas.          |
+| `error` | objeto | Só em respostas que falharam.                                |
 
 O `id` é gerado pela UI (um contador basta) e ecoado pelo daemon na resposta.
 Ele existe porque, num canal persistente, chega tudo pelo mesmo cano: sem o
@@ -45,7 +45,7 @@ o daemon falando sozinho.
 
 ## Mensagens da UI para o daemon
 
-### eventos
+### events
 
 Pede todos os eventos que começam ou terminam dentro de um intervalo fechado. A
 UI pede o mês visível mais os dois vizinhos, então navegar entre meses
@@ -54,25 +54,25 @@ normalmente não vai ao daemon.
 Ocorrências de eventos recorrentes já vêm expandidas (ver [Recorrência](#recorrência)).
 
 ```
-→ {"id":1,"tipo":"eventos","de":"2026-07-01","ate":"2026-09-30"}
-← {"id":1,"eventos":[{ ... }, { ... }]}
+→ {"id":1,"kind":"events","from":"2026-07-01","to":"2026-09-30"}
+← {"id":1,"events":[{ ... }, { ... }]}
 ```
 
-- `de` e `ate`: datas no formato `AAAA-MM-DD`, inclusivas.
-- A resposta traz `"eventos": []` quando não há nada — lista vazia não é erro.
+- `from` e `to`: datas no formato `AAAA-MM-DD`, inclusivas.
+- A resposta traz `"events": []` quando não há nada — lista vazia não é erro.
 
 ### sync
 
 Força a busca imediata das fontes, sem esperar o intervalo de poll.
 
 ```
-→ {"id":2,"tipo":"sync"}
-← {"id":2,"iniciado":true}
+→ {"id":2,"kind":"sync"}
+← {"id":2,"started":true}
 ```
 
 Responde assim que a sincronização **começa**, não quando termina — ela pode
 levar segundos e a UI não deve ficar bloqueada. O fim é anunciado pelo aviso
-`mudou`, se algo mudou de fato.
+`changed`, se algo mudou de fato.
 
 ### status
 
@@ -80,87 +80,87 @@ Estado do daemon e das fontes configuradas. Serve também como teste de vida: se
 respondeu, o daemon está no ar.
 
 ```
-→ {"id":3,"tipo":"status"}
+→ {"id":3,"kind":"status"}
 ← {"id":3,
-   "versao":1,
-   "fontes":[
-     {"nome":"pessoal","ultimo_sync":"2026-08-17T09:15:00-03:00","ok":true},
-     {"nome":"trabalho","ultimo_sync":null,"ok":false,"erro":"host desconhecido"}
+   "version":1,
+   "sources":[
+     {"name":"pessoal","last_sync":"2026-08-17T09:15:00-03:00","ok":true},
+     {"name":"trabalho","last_sync":null,"ok":false,"error":"host desconhecido"}
    ]}
 ```
 
-- `versao`: versão do protocolo falada pelo daemon.
-- `ultimo_sync`: `null` se a fonte nunca sincronizou com sucesso.
-- `ok`: se a última tentativa funcionou. Quando `false`, `erro` explica.
+- `version`: versão do protocolo falada pelo daemon.
+- `last_sync`: `null` se a fonte nunca sincronizou com sucesso.
+- `ok`: se a última tentativa funcionou. Quando `false`, `error` explica.
 
 ## Mensagens do daemon para a UI
 
-### mudou
+### changed
 
 O daemon terminou uma sincronização e os dados mudaram. Não carrega os eventos
 nem o intervalo afetado: é só um toque de campainha.
 
 ```
-← {"tipo":"mudou"}
+← {"kind":"changed"}
 ```
 
 A UI reage repedindo o intervalo que está mostrando. Isso é deliberado — mandar
 o intervalo afetado economizaria uma ida e volta, mas obrigaria o daemon a
 raciocinar sobre o que a UI tem em mãos. O pedido de eventos é barato.
 
-O daemon **não** envia `mudou` quando a sincronização não alterou nada.
+O daemon **não** envia `changed` quando a sincronização não alterou nada.
 
 ## Erros
 
-Uma resposta com falha traz o mesmo `id` do pedido e um campo `erro` no lugar
-dos dados. A UI trata num ponto só: chegou resposta, tem `erro`?
+Uma resposta com falha traz o mesmo `id` do pedido e um campo `error` no lugar
+dos dados. A UI trata num ponto só: chegou resposta, tem `error`?
 
 ```
-→ {"id":4,"tipo":"eventos","de":"banana","ate":"2026-09-30"}
-← {"id":4,"erro":{"codigo":"intervalo_invalido","msg":"'de' não é uma data válida"}}
+→ {"id":4,"kind":"events","from":"banana","to":"2026-09-30"}
+← {"id":4,"error":{"code":"invalid_range","msg":"'from' não é uma data válida"}}
 ```
 
 | código               | significa                                                          |
 | -------------------- | ------------------------------------------------------------------ |
-| `mensagem_invalida`  | JSON malformado, `tipo` desconhecido ou campo obrigatório faltando |
-| `intervalo_invalido` | `de`/`ate` ausentes, malformados, ou `ate` anterior a `de`         |
-| `interno`            | falha inesperada do daemon; `msg` traz o detalhe para o log        |
+| `invalid_message`  | JSON malformado, `kind` desconhecido ou campo obrigatório faltando |
+| `invalid_range` | `from`/`to` ausentes, malformados, ou `to` anterior a `from`         |
+| `internal`            | falha inesperada do daemon; `msg` traz o detalhe para o log        |
 
 `msg` é texto para humano, destinado ao log — a UI decide o que mostrar a partir
-do `codigo`, nunca do texto.
+do `code`, nunca do texto.
 
 Quando o JSON é tão malformado que nem o `id` dá para extrair, o daemon responde
-com `"id": null` e o código `mensagem_invalida`.
+com `"id": null` e o código `invalid_message`.
 
 ## Modelo de evento
 
 ```json
 {
   "id": "reuniao-42",
-  "ocorrencia": "2026-08-04T10:00:00-03:00",
-  "titulo": "Reunião semanal",
-  "inicio": "2026-08-04T10:00:00-03:00",
-  "fim": "2026-08-04T11:00:00-03:00",
-  "dia_inteiro": false,
-  "origem": "trabalho",
-  "local": "Sala 3",
-  "descricao": "Pauta no drive"
+  "occurrence": "2026-08-04T10:00:00-03:00",
+  "title": "Reunião semanal",
+  "start": "2026-08-04T10:00:00-03:00",
+  "end": "2026-08-04T11:00:00-03:00",
+  "all_day": false,
+  "source": "trabalho",
+  "location": "Sala 3",
+  "description": "Pauta no drive"
 }
 ```
 
 | campo         | tipo           | obrigatório | observação                                                     |
 | ------------- | -------------- | ----------- | -------------------------------------------------------------- |
 | `id`          | string         | sim         | Identifica a **série**, não a ocorrência. Estável entre syncs. |
-| `ocorrencia`  | string \| null | sim         | `null` para eventos comuns. Ver abaixo.                        |
-| `titulo`      | string         | sim         | Pode ser string vazia se a fonte não trouxer.                  |
-| `inicio`      | string         | sim         | ISO 8601 com offset, ou `AAAA-MM-DD` se `dia_inteiro`.         |
-| `fim`         | string         | sim         | Mesmas regras de `inicio`.                                     |
-| `dia_inteiro` | booleano       | sim         | Ver abaixo.                                                    |
-| `origem`      | string         | sim         | Nome da fonte no config, para a UI agrupar e exibir.           |
-| `local`       | string         | não         | Ausente ou `""` quando não há.                                 |
-| `descricao`   | string         | não         | Idem.                                                          |
+| `occurrence`  | string \| null | sim         | `null` para eventos comuns. Ver abaixo.                        |
+| `title`      | string         | sim         | Pode ser string vazia se a fonte não trouxer.                  |
+| `start`      | string         | sim         | ISO 8601 com offset, ou `AAAA-MM-DD` se `all_day`.         |
+| `end`         | string         | sim         | Mesmas regras de `start`.                                     |
+| `all_day` | booleano       | sim         | Ver abaixo.                                                    |
+| `source`      | string         | sim         | Nome da fonte no config, para a UI agrupar e exibir.           |
+| `location`       | string         | não         | Ausente ou `""` quando não há.                                 |
+| `description`   | string         | não         | Idem.                                                          |
 
-**A chave única de um evento na tela é `id` + `inicio`.** Nenhum dos dois
+**A chave única de um evento na tela é `id` + `start`.** Nenhum dos dois
 sozinho basta: uma série recorrente repete o `id` em todas as ocorrências.
 
 ### Datas
@@ -172,16 +172,16 @@ JavaScript entende esse formato diretamente.
 
 ### Dia inteiro
 
-Quando `dia_inteiro` é `true`, `inicio` e `fim` trazem **só a data**, sem hora e
+Quando `all_day` é `true`, `start` e `end` trazem **só a data**, sem hora e
 sem offset:
 
 ```json
-{ "inicio": "2026-08-20", "fim": "2026-08-20", "dia_inteiro": true }
+{ "start": "2026-08-20", "end": "2026-08-20", "all_day": true }
 ```
 
 Não é o mesmo que meia-noite: um aniversário no dia 20 é no dia 20 em qualquer
-fuso, e não deve escorregar para o dia 19 quando o usuário viaja. `fim` é
-inclusivo — um evento de um dia só tem `inicio` igual a `fim`.
+fuso, e não deve escorregar para o dia 19 quando o usuário viaja. `end` é
+inclusivo — um evento de um dia só tem `start` igual a `end`.
 
 ### Recorrência
 
@@ -189,11 +189,11 @@ O daemon expande as regras (`RRULE`) e entrega ocorrências prontas. **A UI nunc
 vê uma regra de recorrência** — recebe uma lista de eventos com data e hora, e
 não sabe dizer quais vieram de uma série.
 
-O campo `ocorrencia` carrega o identificador do slot original na série
-(equivalente ao `RECURRENCE-ID` do iCalendar) e normalmente é igual a `inicio`.
+O campo `occurrence` carrega o identificador do slot original na série
+(equivalente ao `RECURRENCE-ID` do iCalendar) e normalmente é igual a `start`.
 Os dois diferem quando uma instância específica foi remarcada: a reunião de toda
-terça às 10h que, só naquela semana, passou para quarta às 14h. Aí `ocorrencia`
-guarda a terça original e `inicio`, a quarta real.
+terça às 10h que, só naquela semana, passou para quarta às 14h. Aí `occurrence`
+guarda a terça original e `start`, a quarta real.
 
 Na v0.2 isso é só informação. Na v0.4, quando editar um recorrente for possível,
 é o que permite dizer "altere a série X na ocorrência Y" em vez de bagunçar a
@@ -232,7 +232,7 @@ avisos enquanto esteve fora.
 
 ## Versionamento
 
-O campo `versao` da resposta de `status` diz qual versão o daemon fala. A UI
+O campo `version` da resposta de `status` diz qual versão o daemon fala. A UI
 compara com a que conhece:
 
 - **Igual:** segue normalmente.
@@ -252,34 +252,34 @@ significado de um valor existente.
 ```
                       UI conecta em $XDG_RUNTIME_DIR/hyprcal/daemon.sock
 
-→ {"id":1,"tipo":"status"}
-← {"id":1,"versao":1,"fontes":[{"nome":"pessoal","ultimo_sync":"2026-08-17T09:15:00-03:00","ok":true}]}
+→ {"id":1,"kind":"status"}
+← {"id":1,"version":1,"sources":[{"name":"pessoal","last_sync":"2026-08-17T09:15:00-03:00","ok":true}]}
 
                       versão bate: a UI habilita os indicadores de evento
                       usuário clica no relógio, popup abre em agosto
 
-→ {"id":2,"tipo":"eventos","de":"2026-07-01","ate":"2026-09-30"}
-← {"id":2,"eventos":[
-     {"id":"reuniao-42","ocorrencia":"2026-08-04T10:00:00-03:00","titulo":"Reunião semanal",
-      "inicio":"2026-08-04T10:00:00-03:00","fim":"2026-08-04T11:00:00-03:00",
-      "dia_inteiro":false,"origem":"trabalho"},
-     {"id":"aniv-joao","ocorrencia":null,"titulo":"Aniversário do João",
-      "inicio":"2026-08-20","fim":"2026-08-20","dia_inteiro":true,"origem":"pessoal"}
+→ {"id":2,"kind":"events","from":"2026-07-01","to":"2026-09-30"}
+← {"id":2,"events":[
+     {"id":"reuniao-42","occurrence":"2026-08-04T10:00:00-03:00","title":"Reunião semanal",
+      "start":"2026-08-04T10:00:00-03:00","end":"2026-08-04T11:00:00-03:00",
+      "all_day":false,"source":"trabalho"},
+     {"id":"aniv-joao","occurrence":null,"title":"Aniversário do João",
+      "start":"2026-08-20","end":"2026-08-20","all_day":true,"source":"pessoal"}
    ]}
 
                       usuário navega para setembro: já está em memória, nada trafega
                       usuário fecha o popup. a conexão continua aberta.
 
-← {"tipo":"mudou"}     15 minutos depois, o daemon sincronizou e algo mudou
+← {"kind":"changed"}     15 minutos depois, o daemon sincronizou e algo mudou
 
-→ {"id":3,"tipo":"eventos","de":"2026-07-01","ate":"2026-09-30"}
-← {"id":3,"eventos":[ ... ]}
+→ {"id":3,"kind":"events","from":"2026-07-01","to":"2026-09-30"}
+← {"id":3,"events":[ ... ]}
 
                       usuário quer forçar atualização
 
-→ {"id":4,"tipo":"sync"}
-← {"id":4,"iniciado":true}
-← {"tipo":"mudou"}     quando terminar, se tiver mudado
+→ {"id":4,"kind":"sync"}
+← {"id":4,"started":true}
+← {"kind":"changed"}     quando terminar, se tiver mudado
 ```
 
 ## Decisões a revisar
@@ -287,11 +287,11 @@ significado de um valor existente.
 Pontos definidos por padrão razoável, não por necessidade — vale reconsiderar
 quando a implementação der opinião:
 
-- **Campos em português sem acento** (`titulo`, `dia_inteiro`), seguindo o
-  `REQUIREMENTS.md`. Sem acento porque acento em chave JSON funciona mas irrita
-  nos dois lados: obriga `evento["título"]` em vez de `evento.titulo`.
-- **`mudou` sem intervalo afetado.** Simplicidade sobre economia de uma ida e
-  volta. Se o volume de eventos crescer, dá para adicionar `de`/`ate` sem
+- **Campos em inglês.** O código dos dois lados é escrito em inglês, então o
+  protocolo acompanha. O `REQUIREMENTS.md` descreve o modelo de evento em
+  português — é descrição de domínio, não nome de campo.
+- **`changed` sem intervalo afetado.** Simplicidade sobre economia de uma ida e
+  volta. Se o volume de eventos crescer, dá para adicionar `from`/`to` sem
   quebrar nada.
 - **Timeout de 2s e teto de 30s** na reconexão: chutes plausíveis, a serem
   ajustados com uso real.
