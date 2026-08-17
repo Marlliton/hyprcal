@@ -53,9 +53,11 @@ Duas peças, com responsabilidades separadas:
   - [x] Leitura de `~/.config/hyprcal/config.toml` e uso no lugar dos defaults.
 
 Pendências identificadas durante a implementação:
-- [ ] Voltar para o mês atual ao reabrir o popup, em vez de manter onde parou.
-- [ ] Recalcular o dia de hoje quando a janela abre — se o app atravessa a
+- [x] Voltar para o mês atual ao reabrir o popup, em vez de manter onde parou.
+- [x] Recalcular o dia de hoje quando a janela abre — se o app atravessa a
       meia-noite aberto, o destaque fica no dia errado.
+- [x] Focar o dia de hoje ao abrir, em vez de deixar o anel de foco do teclado
+      preso no último dia clicado.
 
 ### v0.2 — Eventos (leitura)
 - [ ] Daemon `hyprcald` em Go com fontes de eventos plugáveis (interface `Source`):
@@ -100,6 +102,23 @@ path = "~/calendars/trabalho.ics"
 
 ### v0.5 — Temas
 - [ ] Sistema de temas configurável (`theme` no TOML), Mocha como padrão.
+
+### v0.6 — Distribuição
+- [ ] `PKGBUILD` declarando as dependências, para o pacman resolvê-las sozinho:
+  - `depends`: `gjs`, `gtk4`, `libadwaita`, `libastal-4`, `gtk4-layer-shell`
+  - `makedepends`: `aylurs-gtk-shell` (gera o bundle), `dart-sass` (compila o scss)
+- [ ] Bundle instalado como `/usr/bin/hyprcal`, em vez de rodar a partir do
+      diretório de código.
+- [ ] `config.example.toml` documentando as chaves aceitas.
+- [ ] README com instalação e o trecho de config da waybar e do Hyprland,
+      apontando para o binário instalado.
+- [ ] Decidir se publica no AUR.
+
+O `ags bundle` não produz um executável autocontido: ele gera um script que
+entrega o JS para o `gjs` interpretar, com `LD_PRELOAD` do `gtk4-layer-shell`.
+Todas as bibliotecas são resolvidas em runtime — daí a lista de `depends` acima.
+Essa fase pode ser antecipada assim que o MVP estiver estável; ela não depende
+das v0.2–v0.5.
 
 ## Requisitos não-funcionais
 
