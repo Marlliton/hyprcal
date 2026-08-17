@@ -4,3 +4,5 @@ node_modules/
 # Binário do daemon, gerado por `go build` dentro de daemon/.
 daemon/hyprcald
 daemon/daemon
+
+CLAUDE.md
