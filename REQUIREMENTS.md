@@ -41,13 +41,21 @@ Duas peças, com responsabilidades separadas:
 ## Fases
 
 ### v0.1 — MVP (calendário puro, sem eventos)
-- [ ] Janela layer-shell ancorada conforme config, escondida por padrão.
-- [ ] Toggle por comando (`ags toggle` / request nomeado) ligado ao `on-click` do
+- [x] Janela layer-shell ancorada conforme config, escondida por padrão.
+- [x] Toggle por comando (`ags toggle` / request nomeado) ligado ao `on-click` do
       módulo `clock` da waybar; fecha com `Esc` e ao clicar fora.
-- [ ] Grade mensal com navegação de mês (◀ ▶) e de ano; botão "hoje".
-- [ ] Dia atual destacado; seleção de dia por clique (base para eventos na v0.2).
-- [ ] Tema Catppuccin Mocha, coerente com o `mocha.css` da waybar.
+- [x] Grade mensal com navegação de mês (◀ ▶) e de ano; botão "hoje".
+- [x] Dia atual destacado; seleção de dia por clique (base para eventos na v0.2).
+- [x] Tema Catppuccin Mocha, coerente com o `mocha.css` da waybar.
 - [ ] Config TOML mínima: `position`, `margin`, `first_day_of_week`, `locale`.
+  - [x] Parser do subconjunto de TOML que a UI precisa (`lib/toml.ts`).
+  - [x] Validação com defaults e relato de erros (`parseConfig`).
+  - [ ] Leitura de `~/.config/hyprcal/config.toml` e uso no lugar dos defaults.
+
+Pendências identificadas durante a implementação:
+- [ ] Voltar para o mês atual ao reabrir o popup, em vez de manter onde parou.
+- [ ] Recalcular o dia de hoje quando a janela abre — se o app atravessa a
+      meia-noite aberto, o destaque fica no dia errado.
 
 ### v0.2 — Eventos (leitura)
 - [ ] Daemon `hyprcald` em Go com fontes de eventos plugáveis (interface `Source`):
@@ -115,3 +123,23 @@ path = "~/calendars/trabalho.ics"
 - **2026-08-16** — Fontes de eventos da v0.2: ICS local e ICS por URL (Google via
   endereço iCal secreto, somente leitura). API do Google/CalDAV com OAuth fica
   amarrada à v0.4, quando a escrita de eventos justificar a complexidade.
+- **2026-08-17** — O popup é uma janela layer-shell do tamanho da tela, transparente,
+  com o calendário ancorado dentro. É o que permite fechar ao clicar fora: um layer
+  só recebe eventos dentro dos próprios limites.
+- **2026-08-17** — A grade do mês é sempre 6×7, mesmo quando o mês cabe em 5 semanas,
+  para o popup não mudar de altura ao navegar entre meses.
+- **2026-08-17** — O parser TOML da UI cobre só pares `chave = valor` no nível raiz.
+  Tabelas e arrays de tabelas ficam de fora porque as fontes de eventos (`[[sources]]`)
+  são lidas pelo daemon Go, que tem biblioteca madura para isso — a UI nunca vai
+  precisar entendê-las.
+- **2026-08-17** — Divisão de responsabilidade na config: o parser é tolerante e só
+  transforma texto em dados; quem rejeita valor fora do domínio é a validação, que
+  precisa disso de qualquer forma. Evita o parser crescer sem fim.
+- **2026-08-17** — `parseConfig` devolve `{ config, errors }` em vez de logar direto:
+  detectar o erro e reportá-lo são responsabilidades separadas, e quem chama decide
+  se mostra no boot, na UI, ou ignora.
+- **2026-08-17** — Nada em `lib/` pode importar GTK. Os testes rodam no Node, onde
+  `gi://` não existe, então essa é a regra que mantém a pasta testável — a tradução
+  para GTK vive em `widget/` (ex.: `widget/alignment.ts`).
+- **2026-08-17** — Testes com vitest, cobrindo apenas a lógica pura de `lib/`. O
+  runtime real é o GJS, então o que passa aqui ainda merece uma conferida no app.
