@@ -71,7 +71,24 @@ Pendências identificadas durante a implementação:
 - [ ] Painel com a lista de eventos do dia selecionado (hora, título, origem).
 - [ ] UI degrada graciosamente se o daemon não estiver rodando (volta ao modo v0.1).
 
-Modelo de evento: `{id, título, início, fim, dia_inteiro, origem, local, descrição}`.
+O contrato entre as duas peças está fechado em `PROTOCOL.md`.
+
+Progresso do daemon (`daemon/`):
+- [x] Lê `$XDG_RUNTIME_DIR` e monta o caminho do socket; recusa a subir sem a env.
+- [x] Escuta em socket Unix e aceita conexões, uma goroutine por cliente.
+- [x] Framing NDJSON com `json.Decoder`/`Encoder`; responde `status` com dados
+      fixos e devolve erro para `kind` desconhecido.
+- [ ] Encerrar limpo em `SIGINT`/`SIGTERM`, removendo o socket — hoje todo
+      `Ctrl+C` deixa um socket órfão que trava o próximo start.
+- [ ] Ler ICS local e responder `events` a partir de um cache em memória.
+- [ ] Expandir recorrência com `rrule-go`.
+- [ ] Poll periódico das fontes e aviso `changed`.
+- [ ] ICS por URL.
+
+Progresso da UI para eventos: ainda não começou.
+
+Modelo de evento: `{id, título, início, fim, dia_inteiro, origem, local, descrição}`
+— os nomes dos campos no fio estão em `PROTOCOL.md`, em inglês.
 
 Exemplo de configuração de fontes:
 
