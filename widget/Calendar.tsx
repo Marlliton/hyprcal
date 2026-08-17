@@ -1,6 +1,7 @@
 import app from "ags/gtk4/app"
 import { Astal, Gtk, Gdk } from "ags/gtk4"
 import { config, alignment } from "../lib/config"
+import MonthView from "./MonthView"
 
 export const WINDOW_NAME = "calendar"
 
@@ -74,7 +75,7 @@ export default function Calendar() {
         orientation={Gtk.Orientation.VERTICAL}
         $={(self) => (card = self)}
       >
-        <label class="placeholder" label="hyprcal" />
+        <MonthView />
       </box>
     </window>
   )

@@ -21,6 +21,14 @@ $mauve: #cba6f7;
 $peach: #fab387;
 $red: #f38ba8;
 
+// Dimensões — mexa aqui para calibrar a escala do popup inteiro.
+// A célula é o módulo: todo o resto é derivado dela.
+$cell: 46px;
+$cell-height: 42px;
+$font: 15px;
+$font-title: 17px;
+$font-weekday: 12px;
+
 // A janela é o overlay que cobre a tela inteira: precisa ser invisível e
 // deixar o clique no vazio chegar ao gesture que fecha o popup.
 window.Hyprcal {
@@ -29,14 +37,92 @@ window.Hyprcal {
   .card {
     background: $base;
     color: $text;
+    font-size: $font;
     border: 1px solid $surface0;
-    border-radius: 12px;
-    padding: 12px;
+    border-radius: 14px;
+    padding: 16px;
   }
 
-  .placeholder {
-    color: $mauve;
-    font-weight: bold;
-    padding: 24px;
+  .header {
+    margin-bottom: 10px;
+
+    .title {
+      font-weight: bold;
+      font-size: $font-title;
+      color: $lavender;
+    }
+
+    .nav {
+      color: $overlay1;
+      font-size: $font-title;
+      min-width: 34px;
+
+      &:hover {
+        color: $mauve;
+      }
+    }
+
+    button {
+      background: transparent;
+      border: none;
+      box-shadow: none;
+      padding: 6px 10px;
+      border-radius: 8px;
+
+      &:hover {
+        background: $surface0;
+      }
+    }
+  }
+
+  .weekdays {
+    margin-bottom: 6px;
+
+    .weekday {
+      color: $blue;
+      font-size: $font-weekday;
+      font-weight: bold;
+      // Maiúsculas encurtam a diferença entre "seg" e "sáb" e dão um degrau
+      // claro entre cabeçalho e números, sem precisar de linha divisória.
+      text-transform: uppercase;
+      padding: 6px 0;
+    }
+  }
+
+  .grid .day {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    border-radius: 10px;
+    // Mantém a grade estável independente do mês.
+    min-width: $cell;
+    min-height: $cell-height;
+    padding: 0;
+    margin: 1px;
+    color: $text;
+
+    &:hover {
+      background: $surface0;
+    }
+
+    // Dias vazados do mês anterior/seguinte: presentes, mas discretos.
+    &.outside {
+      color: $overlay0;
+    }
+
+    &.today {
+      color: $peach;
+      font-weight: bold;
+    }
+
+    &.selected {
+      background: $mauve;
+      color: $crust;
+      font-weight: bold;
+
+      &:hover {
+        background: $lavender;
+      }
+    }
   }
 }

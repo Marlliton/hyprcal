@@ -9,9 +9,11 @@ import { Gtk } from "ags/gtk4"
  */
 export type Position =
   | "top"
+  | "top-center"
   | "top-left"
   | "top-right"
   | "bottom"
+  | "bottom-center"
   | "bottom-left"
   | "bottom-right"
   | "center"
@@ -30,7 +32,7 @@ export interface Config {
 }
 
 export const config: Config = {
-  position: "top-right",
+  position: "top-center",
   margin: 12,
   firstDayOfWeek: "monday",
   locale: "pt-BR",
