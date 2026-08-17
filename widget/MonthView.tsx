@@ -28,6 +28,8 @@ export default function MonthView({
 
   const [today, setToday] = createState(now)
 
+  const dayButtons: Gtk.Button[] = []
+
   const cells = createComputed(() => {
     const { year, month } = cursor()
     return monthMatrix(year, month, config.firstDayOfWeek, today()).flat()
@@ -39,7 +41,7 @@ export default function MonthView({
   })
 
   function shift(months: number) {
-    const { year, month } = cursor.get()
+    const { year, month } = cursor.peek()
     const target = new Date(year, month + months, 1)
     setCursor({ year: target.getFullYear(), month: target.getMonth() })
   }
@@ -58,6 +60,9 @@ export default function MonthView({
     setToday(agora)
     setCursor({ year: agora.getFullYear(), month: agora.getMonth() })
     setSelected(null)
+
+    const hoje = cells.peek().findIndex((c) => c.isToday && c.inMonth)
+    dayButtons[hoje]?.grab_focus()
   })
 
   function navButton(label: string, tooltip: string, months: number) {
@@ -73,6 +78,7 @@ export default function MonthView({
 
     return (
       <button
+        $={(self) => (dayButtons[index] = self)}
         class={createComputed(() => {
           const { inMonth, isToday, date } = cells()[index]
           const active = selected()
@@ -83,7 +89,7 @@ export default function MonthView({
           if (active && isSameDay(active, date)) classes.push("selected")
           return classes.join(" ")
         })}
-        onClicked={() => setSelected(cells.get()[index].date)}
+        onClicked={() => setSelected(cells.peek()[index].date)}
       >
         <label label={cell.as((c) => String(c.label))} />
       </button>
