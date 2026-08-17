@@ -1,4 +1,8 @@
 {
+  "scripts": {
+    "test": "vitest",
+    "test:run": "vitest run"
+  },
   "dependencies": {
     "ags": "*",
     "gnim": "*"
@@ -6,5 +10,8 @@
   "prettier": {
     "semi": false,
     "tabWidth": 2
+  },
+  "devDependencies": {
+    "vitest": "^4.1.10"
   }
 }
