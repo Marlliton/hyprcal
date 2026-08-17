@@ -1,6 +1,6 @@
 import { Gtk } from "ags/gtk4"
 import { createState, createComputed } from "ags"
-import { config } from "../lib/config"
+import type { Config } from "../lib/config"
 import { monthMatrix, weekdayLabels, monthLabel, isSameDay } from "../lib/date"
 
 /**
@@ -11,7 +11,7 @@ import { monthMatrix, weekdayLabels, monthLabel, isSameDay } from "../lib/date"
  * ao contrário do React, aqui não existe reconciliação, então recriar a grade a
  * cada navegação seria desperdício.
  */
-export default function MonthView() {
+export default function MonthView({ config }: { config: Config }) {
   const now = new Date()
 
   const [cursor, setCursor] = createState({

@@ -37,13 +37,13 @@ export interface Config {
   locale: string
 }
 
-type ConfigError = {
+export type ConfigError = {
   field: string
   value: unknown
   expected: string
 }
 
-type ParseResult = {
+export type ParseResult = {
   config: Config
   errors: ConfigError[]
 }

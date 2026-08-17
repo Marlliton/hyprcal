@@ -47,10 +47,10 @@ Duas peças, com responsabilidades separadas:
 - [x] Grade mensal com navegação de mês (◀ ▶) e de ano; botão "hoje".
 - [x] Dia atual destacado; seleção de dia por clique (base para eventos na v0.2).
 - [x] Tema Catppuccin Mocha, coerente com o `mocha.css` da waybar.
-- [ ] Config TOML mínima: `position`, `margin`, `first_day_of_week`, `locale`.
+- [x] Config TOML mínima: `position`, `margin`, `first_day_of_week`, `locale`.
   - [x] Parser do subconjunto de TOML que a UI precisa (`lib/toml.ts`).
   - [x] Validação com defaults e relato de erros (`parseConfig`).
-  - [ ] Leitura de `~/.config/hyprcal/config.toml` e uso no lugar dos defaults.
+  - [x] Leitura de `~/.config/hyprcal/config.toml` e uso no lugar dos defaults.
 
 Pendências identificadas durante a implementação:
 - [ ] Voltar para o mês atual ao reabrir o popup, em vez de manter onde parou.

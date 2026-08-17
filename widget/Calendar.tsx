@@ -1,6 +1,6 @@
 import app from "ags/gtk4/app"
 import { Astal, Gtk, Gdk } from "ags/gtk4"
-import { config } from "../lib/config"
+import type { Config } from "../lib/config"
 import { alignment } from "./alignment"
 import MonthView from "./MonthView"
 
@@ -14,7 +14,7 @@ export const WINDOW_NAME = "calendar"
  * wlr-layer-shell — um layer só recebe eventos dentro dos próprios limites,
  * então precisamos que os limites sejam a tela toda.
  */
-export default function Calendar() {
+export default function Calendar(config: Config) {
   const { TOP, BOTTOM, LEFT, RIGHT } = Astal.WindowAnchor
   const { halign, valign } = alignment(config.position)
 
@@ -76,7 +76,7 @@ export default function Calendar() {
         orientation={Gtk.Orientation.VERTICAL}
         $={(self) => (card = self)}
       >
-        <MonthView />
+        <MonthView config={config} />
       </box>
     </window>
   )
