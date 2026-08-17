@@ -1,5 +1,6 @@
 import app from "ags/gtk4/app"
 import { Astal, Gtk, Gdk } from "ags/gtk4"
+import { createState } from "ags"
 import type { Config } from "../lib/config"
 import { alignment } from "./alignment"
 import MonthView from "./MonthView"
@@ -19,6 +20,8 @@ export default function Calendar(config: Config) {
   const { halign, valign } = alignment(config.position)
 
   let card: Gtk.Widget
+
+  const [opened, setOpened] = createState(0)
 
   return (
     <window
@@ -63,6 +66,10 @@ export default function Calendar(config: Config) {
           if (!inside) self.visible = false
         })
         self.add_controller(click)
+
+        self.connect("notify::visible", () => {
+          if (self.visible) setOpened((n) => n + 1)
+        })
       }}
     >
       <box
@@ -76,7 +83,7 @@ export default function Calendar(config: Config) {
         orientation={Gtk.Orientation.VERTICAL}
         $={(self) => (card = self)}
       >
-        <MonthView config={config} />
+        <MonthView config={config} opened={opened} />
       </box>
     </window>
   )

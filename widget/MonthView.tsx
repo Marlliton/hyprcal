@@ -1,5 +1,5 @@
 import { Gtk } from "ags/gtk4"
-import { createState, createComputed } from "ags"
+import { createState, createComputed, createEffect, type Accessor } from "ags"
 import type { Config } from "../lib/config"
 import { monthMatrix, weekdayLabels, monthLabel, isSameDay } from "../lib/date"
 
@@ -11,7 +11,13 @@ import { monthMatrix, weekdayLabels, monthLabel, isSameDay } from "../lib/date"
  * ao contrário do React, aqui não existe reconciliação, então recriar a grade a
  * cada navegação seria desperdício.
  */
-export default function MonthView({ config }: { config: Config }) {
+export default function MonthView({
+  config,
+  opened,
+}: {
+  config: Config
+  opened: Accessor<number>
+}) {
   const now = new Date()
 
   const [cursor, setCursor] = createState({
@@ -20,9 +26,11 @@ export default function MonthView({ config }: { config: Config }) {
   })
   const [selected, setSelected] = createState<Date | null>(null)
 
+  const [today, setToday] = createState(now)
+
   const cells = createComputed(() => {
     const { year, month } = cursor()
-    return monthMatrix(year, month, config.firstDayOfWeek).flat()
+    return monthMatrix(year, month, config.firstDayOfWeek, today()).flat()
   })
 
   const title = createComputed(() => {
@@ -37,10 +45,20 @@ export default function MonthView({ config }: { config: Config }) {
   }
 
   function goToToday() {
-    const today = new Date()
-    setCursor({ year: today.getFullYear(), month: today.getMonth() })
-    setSelected(today)
+    const agora = new Date()
+    setToday(agora)
+    setCursor({ year: agora.getFullYear(), month: agora.getMonth() })
+    setSelected(agora)
   }
+
+  createEffect(() => {
+    opened()
+
+    const agora = new Date()
+    setToday(agora)
+    setCursor({ year: agora.getFullYear(), month: agora.getMonth() })
+    setSelected(null)
+  })
 
   function navButton(label: string, tooltip: string, months: number) {
     return (
