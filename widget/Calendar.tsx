@@ -1,6 +1,7 @@
 import app from "ags/gtk4/app"
 import { Astal, Gtk, Gdk } from "ags/gtk4"
-import { config, alignment } from "../lib/config"
+import { config } from "../lib/config"
+import { alignment } from "./alignment"
 import MonthView from "./MonthView"
 
 export const WINDOW_NAME = "calendar"
