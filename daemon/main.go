@@ -2,6 +2,7 @@ package main
 
 import (
 	"log/slog"
+	"net"
 	"os"
 	"path/filepath"
 
@@ -24,5 +25,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	slog.Info("envs", "XDGRuntimeDir", envs.XDGRuntimeDir, "fullPath", fullPath, "dir", dir)
+	ln, err := net.Listen("unix", fullPath)
+	if err != nil {
+		slog.Error("net listen", "error", err)
+		os.Exit(1)
+	}
+	defer ln.Close()
+
+	slog.Info("escutando", "socket", fullPath)
+	select {}
 }
