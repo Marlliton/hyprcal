@@ -1,7 +1,13 @@
 import { Gtk } from "ags/gtk4"
 import { createState, createComputed, createEffect, type Accessor } from "ags"
 import type { Config } from "../lib/config"
-import { monthMatrix, weekdayLabels, monthLabel, isSameDay } from "../lib/date"
+import {
+  monthMatrix,
+  weekdayLabels,
+  monthLabel,
+  isSameDay,
+  sundayColumn,
+} from "../lib/date"
 
 /**
  * Conteúdo do popup: cabeçalho com navegação + grade do mês.
@@ -85,6 +91,7 @@ export default function MonthView({
 
           const classes = ["day"]
           if (!inMonth) classes.push("outside")
+          if (inMonth && date.getDay() === 0) classes.push("sunday")
           if (isToday) classes.push("today")
           if (active && isSameDay(active, date)) classes.push("selected")
           return classes.join(" ")
@@ -114,8 +121,15 @@ export default function MonthView({
       </box>
 
       <box class="weekdays" homogeneous>
-        {weekdayLabels(config.locale, config.firstDayOfWeek).map((name) => (
-          <label class="weekday" label={name} />
+        {weekdayLabels(config.locale, config.firstDayOfWeek).map((name, i) => (
+          <label
+            class={
+              i === sundayColumn(config.firstDayOfWeek)
+                ? "weekday sunday"
+                : "weekday"
+            }
+            label={name}
+          />
         ))}
       </box>
 

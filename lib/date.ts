@@ -73,6 +73,15 @@ export function monthMatrix(
   return weeks
 }
 
+/**
+ * Em que coluna o domingo cai: 0 quando a semana começa nele, 6 quando começa
+ * na segunda. O cabeçalho só tem o índice da coluna, não a data — daí a conta
+ * viver aqui em vez de no widget.
+ */
+export function sundayColumn(firstDay: FirstDayOfWeek): number {
+  return firstDay === "monday" ? 6 : 0
+}
+
 /** Cabeçalho da grade: ["seg", "ter", ...] no locale pedido. */
 export function weekdayLabels(locale: string, firstDay: FirstDayOfWeek): string[] {
   const format = new Intl.DateTimeFormat(locale, { weekday: "short" })

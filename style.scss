@@ -86,6 +86,10 @@ window.Hyprcal {
       // claro entre cabeçalho e números, sem precisar de linha divisória.
       text-transform: uppercase;
       padding: 6px 0;
+
+      &.sunday {
+        color: $red;
+      }
     }
   }
 
@@ -110,6 +114,13 @@ window.Hyprcal {
       color: $overlay0;
     }
 
+    &.sunday {
+      color: $red;
+    }
+
+    // Vem depois do domingo de propósito: mesma especificidade, então quem
+    // estiver mais abaixo vence. Hoje e o dia selecionado importam mais que a
+    // cor da coluna.
     &.today {
       color: $peach;
       font-weight: bold;
