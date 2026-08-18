@@ -78,8 +78,11 @@ Progresso do daemon (`daemon/`):
 - [x] Escuta em socket Unix e aceita conexões, uma goroutine por cliente.
 - [x] Framing NDJSON com `json.Decoder`/`Encoder`; responde `status` com dados
       fixos e devolve erro para `kind` desconhecido.
-- [ ] Encerrar limpo em `SIGINT`/`SIGTERM`, removendo o socket — hoje todo
-      `Ctrl+C` deixa um socket órfão que trava o próximo start.
+- [x] Encerra limpo em `SIGINT`/`SIGTERM`: para de aceitar, fecha as conexões
+      abertas e remove o socket. Segundo `Ctrl+C` mata na marra.
+- [ ] Limpar socket órfão deixado por `SIGKILL`/crash — o encerramento limpo
+      cobre o caso normal, mas um daemon que morre de panic ainda trava o
+      próximo start com `address already in use`.
 - [ ] Ler ICS local e responder `events` a partir de um cache em memória.
 - [ ] Expandir recorrência com `rrule-go`.
 - [ ] Poll periódico das fontes e aviso `changed`.
@@ -179,3 +182,12 @@ das v0.2–v0.5.
   para GTK vive em `widget/` (ex.: `widget/alignment.ts`).
 - **2026-08-17** — Testes com vitest, cobrindo apenas a lógica pura de `lib/`. O
   runtime real é o GJS, então o que passa aqui ainda merece uma conferida no app.
+- **2026-08-18** — O daemon guarda as conexões abertas num mapa protegido por
+  mutex. Fechar o listener não desbloqueia quem já está lendo — são fds
+  diferentes — e a conexão da UI é persistente por contrato, então sem esse
+  registro todo encerramento espera o timeout. O mesmo mapa serve ao broadcast
+  do aviso `changed`.
+- **2026-08-18** — No laço que lê do socket, o padrão para erro é **sair**, não
+  continuar. Só `*json.UnmarshalTypeError` é recuperável (o decoder segue
+  sincronizado); qualquer outro erro é permanente, e insistir vira laço quente —
+  foi o que aconteceu com `net.ErrClosed` e `io.ErrUnexpectedEOF`.

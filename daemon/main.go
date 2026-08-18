@@ -1,13 +1,18 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"net"
 	"os"
+	"os/signal"
 	"path/filepath"
+	"sync"
+	"syscall"
 	"time"
 
 	"github.com/Marlliton/hyprcal/daemon/config"
@@ -41,43 +46,94 @@ type ErrBody struct {
 	Msg  string `json:"msg"`
 }
 
+func newErr(id *int, code, msg string) Err {
+	return Err{ID: id, Error: ErrBody{Code: code, Msg: msg}}
+}
+
 func main() {
-	envs, err := config.LoadEnvs()
-	if err != nil {
-		slog.Error("load envs", "error", err)
+	if err := run(); err != nil {
+		slog.Error("run", "error", err)
 		os.Exit(1)
 	}
+}
+
+func run() error {
+	envs, err := config.LoadEnvs()
+	if err != nil {
+		return fmt.Errorf("load envs: %w", err)
+	}
+
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
 
 	fullPath := filepath.Join(envs.XDGRuntimeDir, "hyprcal", "daemon.sock")
 	dir := filepath.Dir(fullPath)
 
 	err = os.MkdirAll(dir, 0700)
 	if err != nil {
-		slog.Error("mkdir all", "error", err)
-		os.Exit(1)
+		return fmt.Errorf("mkdir all: %w", err)
 	}
 
 	ln, err := net.Listen("unix", fullPath)
 	if err != nil {
-		slog.Error("net listen", "error", err)
-		os.Exit(1)
+		return fmt.Errorf("net listen: %w", err)
 	}
-	defer ln.Close()
+
+	srv := newServer(ln)
+	defer srv.ln.Close()
+
+	var wg sync.WaitGroup
+	go func() {
+		for {
+			conn, err := srv.ln.Accept()
+			if err != nil {
+				if errors.Is(err, net.ErrClosed) {
+					return
+				}
+
+				slog.Error("accept", "error", err)
+				continue
+			}
+
+			wg.Go(func() {
+				handleConn(conn, srv)
+			})
+		}
+	}()
 
 	slog.Info("listening", "socket", fullPath)
+	<-ctx.Done()
+	stop() // segundo Ctrl + C mata na marra
 
-	for {
-		conn, err := ln.Accept()
-		if err != nil {
-			slog.Error("accept", "error", err)
-			continue
-		}
-		go handleConn(conn)
+	slog.Info("shutting down")
+	if err := srv.ln.Close(); err != nil && !errors.Is(err, net.ErrClosed) {
+		slog.Error("close listener", "error", err)
 	}
+	srv.closeConns()
+
+	done := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		slog.Info("server exited gracefully")
+	case <-time.After(5 * time.Second):
+		slog.Warn("shutdown timeout, forcing exit")
+	}
+
+	return nil
 }
 
-func handleConn(conn net.Conn) {
+func handleConn(conn net.Conn, srv *server) {
 	defer conn.Close()
+
+	if ok := srv.track(conn); !ok {
+		return
+	}
+	defer srv.untrack(conn)
 
 	dec := json.NewDecoder(conn)
 	enc := json.NewEncoder(conn)
@@ -86,16 +142,26 @@ func handleConn(conn net.Conn) {
 		var o Order
 		err := dec.Decode(&o)
 		if err != nil {
-			if errors.Is(err, io.EOF) {
+			// A conexão acabou o cliente saiu, ou shutdown.
+			if errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) ||
+				errors.Is(err, net.ErrClosed) {
 				return
 			}
-			e := Err{ID: &o.ID, Error: ErrBody{Code: "invalid_message", Msg: err.Error()}}
-			_ = enc.Encode(e)
+			if _, ok := errors.AsType[*net.OpError](err); ok {
+				return
+			}
 
-			if _, ok := errors.AsType[*json.SyntaxError](err); ok {
-				return
+			// JSON íntegro com campo de tipo errado: é a única falha em que o
+			// decoder continua sincronizado e dá para ler a próxima mensagem.
+			if _, ok := errors.AsType[*json.UnmarshalTypeError](err); ok {
+				_ = enc.Encode(newErr(nil, "invalid_message", err.Error()))
+				continue
 			}
-			continue
+
+			// Todo o resto (sintaxe inclusive): o stream não serve mais. Sair é o
+			// padrão de propósito
+			_ = enc.Encode(newErr(nil, "invalid_message", err.Error()))
+			return
 		}
 
 		switch o.Kind {
@@ -104,10 +170,7 @@ func handleConn(conn net.Conn) {
 			s := Status{ID: o.ID, Version: 1, Sources: []Source{{Name: "personal", Ok: true, LastSync: &t}}}
 			_ = enc.Encode(s)
 		default:
-			_ = enc.Encode(Err{
-				ID:    &o.ID,
-				Error: ErrBody{Code: "invalid_message", Msg: "unknown kind"},
-			})
+			_ = enc.Encode(newErr(&o.ID, "invalid_message", "unknown kind"))
 		}
 	}
 }
