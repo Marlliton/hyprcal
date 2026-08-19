@@ -80,9 +80,9 @@ Progresso do daemon (`daemon/`):
       fixos e devolve erro para `kind` desconhecido.
 - [x] Encerra limpo em `SIGINT`/`SIGTERM`: para de aceitar, fecha as conexões
       abertas e remove o socket. Segundo `Ctrl+C` mata na marra.
-- [ ] Limpar socket órfão deixado por `SIGKILL`/crash — o encerramento limpo
-      cobre o caso normal, mas um daemon que morre de panic ainda trava o
-      próximo start com `address already in use`.
+- [x] Limpa socket órfão deixado por `SIGKILL`/crash: só remove depois de o
+      dial recusar, para não roubar o socket de um daemon vivo — nesse caso
+      recusa subir.
 - [ ] Ler ICS local e responder `events` a partir de um cache em memória.
 - [ ] Expandir recorrência com `rrule-go`.
 - [ ] Poll periódico das fontes e aviso `changed`.

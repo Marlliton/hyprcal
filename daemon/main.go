@@ -74,9 +74,9 @@ func run() error {
 		return fmt.Errorf("mkdir all: %w", err)
 	}
 
-	ln, err := net.Listen("unix", fullPath)
+	ln, err := listenSocket(fullPath)
 	if err != nil {
-		return fmt.Errorf("net listen: %w", err)
+		return fmt.Errorf("listen: %w", err)
 	}
 
 	srv := newServer(ln)
@@ -125,6 +125,34 @@ func run() error {
 	}
 
 	return nil
+}
+
+func listenSocket(path string) (net.Listener, error) {
+	ln, err := net.Listen("unix", path)
+	if err == nil {
+		return ln, nil
+	}
+	if !errors.Is(err, syscall.EADDRINUSE) {
+		return nil, err
+	}
+
+	conn, dialErr := net.DialTimeout("unix", path, 200*time.Millisecond)
+	if dialErr == nil {
+		conn.Close()
+		return nil, fmt.Errorf("another hyprcald is already running on %s", path)
+	}
+	// ECONNREFUSED: o arquivo existe, mas nenhum processo o tem aberto.
+	if !errors.Is(dialErr, syscall.ECONNREFUSED) {
+		return nil, fmt.Errorf("socket %s exists and does not answer: %w", path, dialErr)
+	}
+
+	err = os.Remove(path)
+	if err != nil {
+		return nil, fmt.Errorf("remove stale socket %s: %w", path, err)
+	}
+
+	slog.Warn("removed stale socket", "path", path)
+	return net.Listen("unix", path)
 }
 
 func handleConn(conn net.Conn, srv *server) {
